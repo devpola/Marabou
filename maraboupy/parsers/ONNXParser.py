@@ -183,6 +183,8 @@ class ONNXParser:
             self.concatEquations(node)
         elif node.op_type == "MaxPool":
             self.maxpoolEquations(node, makeEquations)
+        elif node.op_type == "AveragePool":
+            self.averagepoolEquations(node, makeEquations)
         elif node.op_type == "Conv":
             self.convEquations(node, makeEquations)
         elif node.op_type == 'Gemm':
@@ -574,6 +576,50 @@ class ONNXParser:
                             if di < inputShape[2] and dj < inputShape[3]:
                                 maxVars.add(inVars[0][k][di][dj])
                     self.query.addMaxConstraint(maxVars, outVars[0][k][i][j])
+
+    def averagepoolEquations(self, node, makeEquations):
+        """Function to generate average pooling equations
+
+        Args:
+            node (node): ONNX node representing average pool operation
+            makeEquations (bool): True if we need to create new variables and average pooling constraints
+
+        :meta private:
+        """
+        nodeName = node.output[0]
+
+        # Extract attributes and define shape
+        inputShape = self.shapeMap[node.input[0]]
+        kernel_shape = [1, 1]
+        strides = [1, 1]
+        for attr in node.attribute:
+            if attr.name == 'kernel_shape':
+                kernel_shape = get_attribute_value(attr)
+            elif attr.name == 'strides':
+                strides = get_attribute_value(attr)
+
+        outputShape = [dim for dim in inputShape]
+        outputShape[2] = int(np.ceil((inputShape[2] - ((kernel_shape[0] - 1) + 1) + 1) / strides[0]))
+        outputShape[3] = int(np.ceil((inputShape[3] - ((kernel_shape[1] - 1) + 1) + 1) / strides[1]))
+        self.shapeMap[nodeName] = outputShape
+
+        if not makeEquations:
+            return
+
+        inVars = self.varMap[node.input[0]]
+        outVars = self.makeNewVariables(nodeName)
+        for i in range(outputShape[2]):
+            for j in range(outputShape[3]):
+                for k in range(outputShape[1]):
+                    sumVars = []
+                    validCount = 0
+                    for di in range(strides[0] * i, strides[0] * i + kernel_shape[0]):
+                        for dj in range(strides[1] * j, strides[1] * j + kernel_shape[1]):
+                            if di < inputShape[2] and dj < inputShape[3]:
+                                sumVars.append(inVars[0][k][di][dj])
+                                validCount += 1
+                    if validCount > 0:
+                        self.query.addEquation(sumVars, outVars[0][k][i][j], 1 / validCount)
 
     def softmaxEquations(self, node, makeEquations):
         """Function to generate constraints for softmax
