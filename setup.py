@@ -21,11 +21,23 @@ class cmake_build_ext(build_ext):
         # Get the path to the source
         build_temp = os.path.abspath(self.build_temp)
         path_to_source = os.path.dirname(os.path.realpath(__file__))
+        print(build_temp)
+        print(path_to_source)
+
+        # Boost 및 OpenBLAS 경로 지정
+        boost_root = "/content/Marabou/tools/boost-1.84.0"
+        openblas_dir = "/content/Marabou/tools/OpenBLAS-0.3.19"
+        protobuf_dir = "/content/Marabou/tools/protobuf-3.19.2"
+        onnx_dir = "/content/Marabou/tools/onnx-1.15.0"
 
         # Call cmake
         args = [
             f"cmake",
             f"-DCMAKE_BUILD_TYPE=Release",
+            f"-DBOOST_DIR={boost_root}",
+            f"-DOPENBLAS_DIR={openblas_dir}",
+            f"-DONNX_DIR={onnx_dir}",
+            f"-DPROTOBUF_DIR={protobuf_dir}",
             f"-DBUILD_PYTHON=ON",
             f"-DPYTHON_EXECUTABLE={sys.executable}",
             f"-DPYTHON_LIBRARY_OUTPUT_DIRECTORY={build_temp}",
