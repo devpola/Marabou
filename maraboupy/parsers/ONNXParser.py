@@ -598,9 +598,10 @@ class ONNXParser:
             elif attr.name == 'strides':
                 strides = get_attribute_value(attr)
 
+        # Calculate output shape
         outputShape = [dim for dim in inputShape]
-        outputShape[2] = int(np.ceil((inputShape[2] - ((kernel_shape[0] - 1) + 1) + 1) / strides[0]))
-        outputShape[3] = int(np.ceil((inputShape[3] - ((kernel_shape[1] - 1) + 1) + 1) / strides[1]))
+        outputShape[2] = int(np.ceil((inputShape[2] - (kernel_shape[0] - 1) - 1) / strides[0]))
+        outputShape[3] = int(np.ceil((inputShape[3] - (kernel_shape[1] - 1) - 1) / strides[1]))
         self.shapeMap[nodeName] = outputShape
 
         if not makeEquations:
@@ -619,7 +620,15 @@ class ONNXParser:
                                 sumVars.append(inVars[0][k][di][dj])
                                 validCount += 1
                     if validCount > 0:
-                        self.query.addEquation(sumVars, outVars[0][k][i][j], 1 / validCount)
+                        # sumVars - N * outVar = 0
+                        outVar = outVars[0][k][i][j]
+                        vars = sumVars + [outVar]
+                        coeffs = [1.0] * len(sumVars) + [-validCount]
+                        scalar = 0.0
+                        # 디버깅 출력
+                        print("hello")
+                        print(f"Adding Equality: vars={vars}, coeffs={coeffs}, scalar={scalar}")
+                        self.query.addEquality(vars, coeffs, scalar)
 
     def softmaxEquations(self, node, makeEquations):
         """Function to generate constraints for softmax
