@@ -37,7 +37,6 @@ def read_nnet(filename, normalize=False):
     Returns:
         :class:`~maraboupy.MarabouNetworkNNet.MarabouNetworkNNet`
     """
-    print("hello")
     return MarabouNetworkNNet(filename, normalize=normalize)
 
 def read_onnx(filename, inputNames=None, outputNames=None):

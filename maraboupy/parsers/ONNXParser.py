@@ -625,9 +625,7 @@ class ONNXParser:
                         vars = sumVars + [outVar]
                         coeffs = [1.0] * len(sumVars) + [-validCount]
                         scalar = 0.0
-                        # 디버깅 출력
-                        print("hello")
-                        print(f"Adding Equality: vars={vars}, coeffs={coeffs}, scalar={scalar}")
+
                         self.query.addEquality(vars, coeffs, scalar)
 
     def softmaxEquations(self, node, makeEquations):
