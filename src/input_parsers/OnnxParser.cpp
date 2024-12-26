@@ -921,10 +921,10 @@ void OnnxParser::makeMarabouEquations( onnx::NodeProto &node, bool makeEquations
     {
         maxPoolEquations( node, makeEquations );
     }
-    else if ( strcmp( nodeType, "AveragePool" ) == 0 )
-    {
-        averagePoolEquations( node, makeEquations );
-    }
+    // else if ( strcmp( nodeType, "AveragePool" ) == 0 )
+    // {
+    //     averagePoolEquations( node, makeEquations );
+    // }
     else if ( strcmp( nodeType, "Conv" ) == 0 )
     {
         convEquations( node, makeEquations );
@@ -1520,169 +1520,169 @@ void OnnxParser::maxPoolEquations( onnx::NodeProto &node, [[maybe_unused]] bool 
     }
 }
 
-/**
- * @brief Function to generate equations for an AveragePool node.
- * Implements https://github.com/onnx/onnx/blob/main/docs/Operators.md#AveragePool
- *
- * @param node ONNX node representing the AveragePool operation
- * @param makeEquations True if we need to create new variables
- */
-void OnnxParser::averagePoolEquations(onnx::NodeProto &node, [[maybe_unused]] bool makeEquations)
-{
-    String inputNodeName = node.input()[0];
-    String outputNodeName = node.output()[0];
+// /**
+//  * @brief Function to generate equations for an AveragePool node.
+//  * Implements https://github.com/onnx/onnx/blob/main/docs/Operators.md#AveragePool
+//  *
+//  * @param node ONNX node representing the AveragePool operation
+//  * @param makeEquations True if we need to create new variables
+//  */
+// void OnnxParser::averagePoolEquations(onnx::NodeProto &node, [[maybe_unused]] bool makeEquations)
+// {
+//     String inputNodeName = node.input()[0];
+//     String outputNodeName = node.output()[0];
 
-    // Extract attributes and define shape
-    TensorShape inputShape = _shapeMap[inputNodeName];
-    if (inputShape.size() != 4)
-    {
-        String errorMessage = Stringf(
-            "Currently the Onnx '%s' operation with inputs of dimensions not equal to '%d'.",
-            node.op_type().c_str(),
-            inputShape.size());
-        throw MarabouError(MarabouError::ONNX_PARSER_ERROR, errorMessage.ascii());
-    }
-    int widthIndex = inputShape.size() - 2;
-    int heightIndex = inputShape.size() - 1;
-    unsigned int inputWidth = inputShape[widthIndex];
-    unsigned int inputHeight = inputShape[heightIndex];
+//     // Extract attributes and define shape
+//     TensorShape inputShape = _shapeMap[inputNodeName];
+//     if (inputShape.size() != 4)
+//     {
+//         String errorMessage = Stringf(
+//             "Currently the Onnx '%s' operation with inputs of dimensions not equal to '%d'.",
+//             node.op_type().c_str(),
+//             inputShape.size());
+//         throw MarabouError(MarabouError::ONNX_PARSER_ERROR, errorMessage.ascii());
+//     }
+//     int widthIndex = inputShape.size() - 2;
+//     int heightIndex = inputShape.size() - 1;
+//     unsigned int inputWidth = inputShape[widthIndex];
+//     unsigned int inputHeight = inputShape[heightIndex];
 
-    // Get auto_pad (deprecated)
-    String defaultAutoPad = "NOTSET";
-    String autoPad = getStringAttribute(node, "auto_pad", defaultAutoPad);
-    if (autoPad != defaultAutoPad)
-    {
-        unimplementedAttributeError(node, "auto_pad");
-    }
+//     // Get auto_pad (deprecated)
+//     String defaultAutoPad = "NOTSET";
+//     String autoPad = getStringAttribute(node, "auto_pad", defaultAutoPad);
+//     if (autoPad != defaultAutoPad)
+//     {
+//         unimplementedAttributeError(node, "auto_pad");
+//     }
 
-    // Get ceil_mode
-    int defaultCeilMode = 0;
-    int ceilMode = getIntAttribute(node, "ceil_mode", defaultCeilMode);
+//     // Get ceil_mode
+//     int defaultCeilMode = 0;
+//     int ceilMode = getIntAttribute(node, "ceil_mode", defaultCeilMode);
 
-    // Get dilations
-    Vector<unsigned int> defaultDilations = {1, 1};
-    Vector<unsigned int> dilations = getNonNegativeIntsAttribute(node, "dilations", defaultDilations);
-    for (auto d : dilations)
-    {
-        if (d != 1)
-        {
-            unimplementedAttributeError(node, "dilations");
-        }
-    }
+//     // Get dilations
+//     Vector<unsigned int> defaultDilations = {1, 1};
+//     Vector<unsigned int> dilations = getNonNegativeIntsAttribute(node, "dilations", defaultDilations);
+//     for (auto d : dilations)
+//     {
+//         if (d != 1)
+//         {
+//             unimplementedAttributeError(node, "dilations");
+//         }
+//     }
 
-    // Get the kernel shape (required)
-    TensorShape defaultKernelShape = {1, 1};
-    TensorShape kernelShape = getNonNegativeIntsAttribute(node, "kernel_shape", defaultKernelShape);
+//     // Get the kernel shape (required)
+//     TensorShape defaultKernelShape = {1, 1};
+//     TensorShape kernelShape = getNonNegativeIntsAttribute(node, "kernel_shape", defaultKernelShape);
 
-    // Get the pads
-    Vector<unsigned int> defaultPads = {0, 0, 0, 0};
-    Vector<unsigned int> pads = getNonNegativeIntsAttribute(node, "pads", defaultPads);
-    if (pads.size() == 0)
-    {
-        String errorMessage =
-            Stringf("Unexpected padding length '%d' for the Onnx '%s' operation.",
-                    node.op_type().c_str(),
-                    pads.size());
-        throw MarabouError(MarabouError::ONNX_PARSER_ERROR, errorMessage.ascii());
-    }
-    int padWidth = pads[0] + pads[1];
-    int padHeight = pads[2] + pads[3];
+//     // Get the pads
+//     Vector<unsigned int> defaultPads = {0, 0, 0, 0};
+//     Vector<unsigned int> pads = getNonNegativeIntsAttribute(node, "pads", defaultPads);
+//     if (pads.size() == 0)
+//     {
+//         String errorMessage =
+//             Stringf("Unexpected padding length '%d' for the Onnx '%s' operation.",
+//                     node.op_type().c_str(),
+//                     pads.size());
+//         throw MarabouError(MarabouError::ONNX_PARSER_ERROR, errorMessage.ascii());
+//     }
+//     int padWidth = pads[0] + pads[1];
+//     int padHeight = pads[2] + pads[3];
 
-    // Get storage order
-    int defaultStorageOrder = 0;
-    int storageOrder = getIntAttribute(node, "storage_order", defaultStorageOrder);
-    if (storageOrder != defaultStorageOrder)
-    {
-        unimplementedAttributeError(node, "storage_order");
-    }
+//     // Get storage order
+//     int defaultStorageOrder = 0;
+//     int storageOrder = getIntAttribute(node, "storage_order", defaultStorageOrder);
+//     if (storageOrder != defaultStorageOrder)
+//     {
+//         unimplementedAttributeError(node, "storage_order");
+//     }
 
-    // Get strides
-    Vector<unsigned int> defaultStrides = {1, 1};
-    Vector<unsigned int> strides = getNonNegativeIntsAttribute(node, "strides", defaultStrides);
+//     // Get strides
+//     Vector<unsigned int> defaultStrides = {1, 1};
+//     Vector<unsigned int> strides = getNonNegativeIntsAttribute(node, "strides", defaultStrides);
 
-    // Get count_include_pad
-    int defaultCountIncludePad = 0;
-    int countIncludePad = getIntAttribute(node, "count_include_pad", defaultCountIncludePad);
+//     // Get count_include_pad
+//     int defaultCountIncludePad = 0;
+//     int countIncludePad = getIntAttribute(node, "count_include_pad", defaultCountIncludePad);
 
-    // Calculate the outputs shape
-    TensorShape outputShape = Vector<unsigned int>(inputShape);
+//     // Calculate the outputs shape
+//     TensorShape outputShape = Vector<unsigned int>(inputShape);
 
-    float unroundedOutputWidth =
-        (((float)(inputWidth + padWidth - kernelShape[0])) /
-         ((float)strides[0])) +
-        1;
-    float unroundedOutputHeight =
-        (((float)(inputHeight + padHeight - kernelShape[1])) /
-         ((float)strides[1])) +
-        1;
+//     float unroundedOutputWidth =
+//         (((float)(inputWidth + padWidth - kernelShape[0])) /
+//          ((float)strides[0])) +
+//         1;
+//     float unroundedOutputHeight =
+//         (((float)(inputHeight + padHeight - kernelShape[1])) /
+//          ((float)strides[1])) +
+//         1;
 
-    if (ceilMode == 0)
-    {
-        outputShape[widthIndex] = (int)std::floor(unroundedOutputWidth);
-        outputShape[heightIndex] = (int)std::floor(unroundedOutputHeight);
-    }
-    else
-    {
-        outputShape[widthIndex] = (int)std::ceil(unroundedOutputWidth);
-        outputShape[heightIndex] = (int)std::ceil(unroundedOutputHeight);
-    }
+//     if (ceilMode == 0)
+//     {
+//         outputShape[widthIndex] = (int)std::floor(unroundedOutputWidth);
+//         outputShape[heightIndex] = (int)std::floor(unroundedOutputHeight);
+//     }
+//     else
+//     {
+//         outputShape[widthIndex] = (int)std::ceil(unroundedOutputWidth);
+//         outputShape[heightIndex] = (int)std::ceil(unroundedOutputHeight);
+//     }
 
-    _shapeMap[outputNodeName] = outputShape;
-    if (!makeEquations)
-        return;
+//     _shapeMap[outputNodeName] = outputShape;
+//     if (!makeEquations)
+//         return;
 
-    // Make equations
-    Vector<Variable> inputVars = _varMap[inputNodeName];
-    Vector<Variable> outputVars = makeNodeVariables(outputNodeName, false);
-    for (TensorIndex i = 0; i < outputShape[widthIndex]; i++)
-    {
-        for (TensorIndex j = 0; j < outputShape[heightIndex]; j++)
-        {
-            TensorIndex diStart = strides[0] * i;
-            TensorIndex diEnd = std::min(diStart + kernelShape[0], inputWidth);
-            TensorIndex djStart = strides[1] * j;
-            TensorIndex djEnd = std::min(djStart + kernelShape[1], inputHeight);
+//     // Make equations
+//     Vector<Variable> inputVars = _varMap[inputNodeName];
+//     Vector<Variable> outputVars = makeNodeVariables(outputNodeName, false);
+//     for (TensorIndex i = 0; i < outputShape[widthIndex]; i++)
+//     {
+//         for (TensorIndex j = 0; j < outputShape[heightIndex]; j++)
+//         {
+//             TensorIndex diStart = strides[0] * i;
+//             TensorIndex diEnd = std::min(diStart + kernelShape[0], inputWidth);
+//             TensorIndex djStart = strides[1] * j;
+//             TensorIndex djEnd = std::min(djStart + kernelShape[1], inputHeight);
 
-            for (TensorIndex k = 0; k < outputShape[1]; k++)
-            {
-                TensorIndices outputVarIndices = {0, k, i, j};
-                Variable outputVar = tensorLookup(outputVars, outputShape, outputVarIndices);
+//             for (TensorIndex k = 0; k < outputShape[1]; k++)
+//             {
+//                 TensorIndices outputVarIndices = {0, k, i, j};
+//                 Variable outputVar = tensorLookup(outputVars, outputShape, outputVarIndices);
 
-                Equation e = Equation();
-                int numElements = 0;
+//                 Equation e = Equation();
+//                 int numElements = 0;
 
-                for (TensorIndex di = diStart; di < diEnd; di++)
-                {
-                    for (TensorIndex dj = djStart; dj < djEnd; dj++)
-                    {
-                        TensorIndices inputVarIndices = {0, k, di, dj};
-                        Variable inputVar = tensorLookup(inputVars, inputShape, inputVarIndices);
-                        e.addAddend(1, inputVar);
-                        numElements++;
-                    }
-                }
+//                 for (TensorIndex di = diStart; di < diEnd; di++)
+//                 {
+//                     for (TensorIndex dj = djStart; dj < djEnd; dj++)
+//                     {
+//                         TensorIndices inputVarIndices = {0, k, di, dj};
+//                         Variable inputVar = tensorLookup(inputVars, inputShape, inputVarIndices);
+//                         e.addAddend(1, inputVar);
+//                         numElements++;
+//                     }
+//                 }
 
-                // Handle count_include_pad
-                if (countIncludePad)
-                {
-                    // If counting padding, use kernel size as denominator
-                    numElements = kernelShape[0] * kernelShape[1];
-                }
+//                 // Handle count_include_pad
+//                 if (countIncludePad)
+//                 {
+//                     // If counting padding, use kernel size as denominator
+//                     numElements = kernelShape[0] * kernelShape[1];
+//                 }
 
-                // Avoid division by zero
-                if (numElements == 0)
-                {
-                    throw MarabouError(MarabouError::ONNX_PARSER_ERROR,
-                                       "AveragePool has zero elements in pooling window.");
-                }
+//                 // Avoid division by zero
+//                 if (numElements == 0)
+//                 {
+//                     throw MarabouError(MarabouError::ONNX_PARSER_ERROR,
+//                                        "AveragePool has zero elements in pooling window.");
+//                 }
 
-                e.addAddend(-1.0 / numElements, outputVar);
-                e.setScalar(0.0);
-                _query.addEquation(e);
-            }
-        }
-    }
-}
+//                 e.addAddend(-1.0 / numElements, outputVar);
+//                 e.setScalar(0.0);
+//                 _query.addEquation(e);
+//             }
+//         }
+//     }
+// }
 
 
 /**

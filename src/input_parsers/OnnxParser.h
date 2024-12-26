@@ -98,7 +98,7 @@ private:
     void transpose( onnx::NodeProto &node );
     void batchNormEquations( onnx::NodeProto &node, bool makeEquations );
     void maxPoolEquations( onnx::NodeProto &node, bool makeEquations );
-    void averagePoolEquations( onnx::NodeProto &node, bool makeEquations );
+    // void averagePoolEquations( onnx::NodeProto &node, bool makeEquations );
     void convEquations( onnx::NodeProto &node, bool makeEquations );
     void gemmEquations( onnx::NodeProto &node, bool makeEquations );
     void scaleAndAddEquations( onnx::NodeProto &node,

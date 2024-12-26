@@ -581,8 +581,8 @@ class ONNXParser:
         """Function to generate average pooling equations
 
         Args:
-            node (node): ONNX node representing average pool operation
-            makeEquations (bool): True if we need to create new variables and average pooling constraints
+            node (node): ONNX node representing averagepool operation
+            makeEquations (bool): True if we need to create new variables and averagepool constraints
 
         :meta private:
         """
@@ -598,10 +598,10 @@ class ONNXParser:
             elif attr.name == 'strides':
                 strides = get_attribute_value(attr)
 
-        # Calculate output shape
+        # Define output shape
         outputShape = [dim for dim in inputShape]
-        outputShape[2] = int(np.ceil((inputShape[2] - (kernel_shape[0] - 1) - 1) / strides[0]))
-        outputShape[3] = int(np.ceil((inputShape[3] - (kernel_shape[1] - 1) - 1) / strides[1]))
+        outputShape[2] = int(np.ceil((inputShape[2] - ((kernel_shape[0] - 1) + 1) + 1) / strides[0]))
+        outputShape[3] = int(np.ceil((inputShape[3] - ((kernel_shape[1] - 1) + 1) + 1) / strides[1]))
         self.shapeMap[nodeName] = outputShape
 
         if not makeEquations:
@@ -609,24 +609,24 @@ class ONNXParser:
 
         inVars = self.varMap[node.input[0]]
         outVars = self.makeNewVariables(nodeName)
+        pool_size = kernel_shape[0] * kernel_shape[1]
+
         for i in range(outputShape[2]):
             for j in range(outputShape[3]):
                 for k in range(outputShape[1]):
-                    sumVars = []
-                    validCount = 0
-                    for di in range(strides[0] * i, strides[0] * i + kernel_shape[0]):
-                        for dj in range(strides[1] * j, strides[1] * j + kernel_shape[1]):
+                    sum_vars = set()
+                    for di in range(strides[0]*i, strides[0]*i + kernel_shape[0]):
+                        for dj in range(strides[1]*j, strides[1]*j + kernel_shape[1]):
                             if di < inputShape[2] and dj < inputShape[3]:
-                                sumVars.append(inVars[0][k][di][dj])
-                                validCount += 1
-                    if validCount > 0:
-                        # sumVars - N * outVar = 0
-                        outVar = outVars[0][k][i][j]
-                        vars = sumVars + [outVar]
-                        coeffs = [1.0] * len(sumVars) + [-validCount]
-                        scalar = 0.0
-
-                        self.query.addEquality(vars, coeffs, scalar)
+                                sum_vars.add(inVars[0][k][di][dj])
+                    # Add Average Pooling constraint: outputVar = (1 / pool_size) * sum(inputVars)
+                    # Implemented as: (1 / pool_size) * var1 + (1 / pool_size) * var2 + ... - outputVar = 0
+                    equation = MarabouUtils.Equation()
+                    for var in sum_vars:
+                        equation.addAddend(1.0 / pool_size, var)
+                    equation.addAddend(-1.0, outVars[0][k][i][j])
+                    equation.setScalar(0.0)
+                    self.query.addEquation(equation)
 
     def softmaxEquations(self, node, makeEquations):
         """Function to generate constraints for softmax
